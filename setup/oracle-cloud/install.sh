@@ -4,7 +4,7 @@
 # Usage:
 #   export KITSUNE_DOMAIN=kitsune.duckdns.org
 #   export KITSUNE_EMAIL=your-email@example.com
-#   bash <(curl -L https://raw.githubusercontent.com/YOUR_GH_USER/kitsune-v2/main/setup/oracle-cloud/install.sh)
+#   bash <(curl -L https://raw.githubusercontent.com/Heztamione/Kitsune-V2/main/setup/oracle-cloud/install.sh)
 
 set -euo pipefail
 
@@ -13,7 +13,7 @@ echo "=== Kitsune v2 — Oracle Cloud Free Tier installer ==="
 # ---- Configuration ----
 KITSUNE_DOMAIN="${KITSUNE_DOMAIN:-}"
 KITSUNE_EMAIL="${KITSUNE_EMAIL:-}"
-KITSUNE_REPO="${KITSUNE_REPO:-https://github.com/Heztamione/kitsune-v2.git}"
+KITSUNE_REPO="${KITSUNE_REPO:-https://github.com/Heztamione/Kitsune-V2.git}"
 SESSION_SECRET="${SESSION_SECRET:-$(openssl rand -hex 48)}"
 
 if [[ -z "$KITSUNE_DOMAIN" ]]; then

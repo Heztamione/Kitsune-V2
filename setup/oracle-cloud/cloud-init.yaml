@@ -12,7 +12,7 @@ packages:
 runcmd:
   - export KITSUNE_DOMAIN=REPLACE_WITH_YOUR_DOMAIN
   - export KITSUNE_EMAIL=REPLACE_WITH_YOUR_EMAIL
-  - export KITSUNE_REPO=https://github.com/Heztamione/kitsune-v2.git
+  - export KITSUNE_REPO=https://github.com/Heztamione/Kitsune-V2.git
   - curl -fsSL -o /tmp/install.sh "$KITSUNE_REPO/raw/main/setup/oracle-cloud/install.sh"
   - bash /tmp/install.sh
 

@@ -34,13 +34,13 @@ This directory contains everything needed to run Kitsune v2 24/7 for free on an 
    ```bash
    export KITSUNE_DOMAIN=kitsune.duckdns.org
    export KITSUNE_EMAIL=your-email@example.com
-   bash <(curl -L https://raw.githubusercontent.com/Heztamione/kitsune-v2/main/setup/oracle-cloud/install.sh)
+   bash <(curl -L https://raw.githubusercontent.com/Heztamione/Kitsune-V2/main/setup/oracle-cloud/install.sh)
    ```
 
    Or clone the repo first and run locally:
 
    ```bash
-   git clone https://github.com/Heztamione/kitsune-v2.git
+   git clone https://github.com/Heztamione/Kitsune-V2.git
    cd kitsune-v2/setup/oracle-cloud
    export KITSUNE_DOMAIN=kitsune.duckdns.org
    export KITSUNE_EMAIL=your-email@example.com
