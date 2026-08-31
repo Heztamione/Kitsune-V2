@@ -1,0 +1,15 @@
+{
+    email __KITSUNE_EMAIL__
+}
+
+__KITSUNE_DOMAIN__ {
+    reverse_proxy localhost:7860
+
+    # Security headers already set by Kitsune, but Caddy can add extra ones
+    header {
+        X-Real-IP {remote_host}
+        X-Forwarded-Proto {scheme}
+    }
+
+    tls __KITSUNE_EMAIL__
+}

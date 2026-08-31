@@ -1,0 +1,19 @@
+#cloud-config
+# Paste this into the "Custom user data" field when creating the Oracle Cloud VM.
+# Set KITSUNE_DOMAIN and KITSUNE_EMAIL before pasting, or edit after creation.
+
+package_update: true
+packages:
+  - curl
+  - git
+  - jq
+  - ufw
+
+runcmd:
+  - export KITSUNE_DOMAIN=REPLACE_WITH_YOUR_DOMAIN
+  - export KITSUNE_EMAIL=REPLACE_WITH_YOUR_EMAIL
+  - export KITSUNE_REPO=https://github.com/Heztamione/kitsune-v2.git
+  - curl -fsSL -o /tmp/install.sh "$KITSUNE_REPO/raw/main/setup/oracle-cloud/install.sh"
+  - bash /tmp/install.sh
+
+final_message: "Kitsune v2 setup should now be running. Check https://$KITSUNE_DOMAIN"

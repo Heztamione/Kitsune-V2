@@ -1,0 +1,26 @@
+services:
+  kitsune:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: kitsune-v2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      - NODE_ENV=production
+      - PORT=7860
+      - SESSION_SECRET=${SESSION_SECRET}
+      - TRUST_PROXY=1
+      # Optional: set a PostgreSQL DATABASE_URL to switch from demo mode
+      # - DATABASE_URL=postgresql://...
+      # - DATABASE_SSL=1
+      # Optional: TURN server for reliable voice/video across networks
+      # - TURN_URLS=turn:...
+      # - TURN_USERNAME=...
+      # - TURN_CREDENTIAL=...
+    volumes:
+      - kitsune-data:/home/user/.local/share/kitsune
+
+volumes:
+  kitsune-data:

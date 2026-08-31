@@ -30,6 +30,7 @@ COPY --chown=user:user . .
 # Ensure the persistence directory is writable by the non-root user.
 # The memory-db module writes to $HOME/.local/share/kitsune by default on Linux.
 RUN mkdir -p /home/user/.local/share/kitsune && chown -R user:user /home/user /app
+VOLUME /home/user/.local/share/kitsune
 
 USER user
 
