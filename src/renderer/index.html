@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#07070a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Kitsune</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" href="./assets/kitsune-logo.png" />
+<link rel="apple-touch-icon" href="./assets/kitsune-logo.png" />
+<script src="app.js" defer></script>
+</head>
+<body>
+  <!-- ============ AUTH / LOGIN ============ -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <img src="./assets/kitsune-logo.png" alt="Kitsune" class="auth-logo" />
+      <div class="auth-title">KITSUNE</div>
+      <div class="auth-sub">Gaming chat, sharpened. Identify to enter.</div>
+      <div id="authError" class="auth-error hidden"></div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" data-mode="login">Login</button>
+        <button class="auth-tab" id="tabRegister" data-mode="register">Register</button>
+      </div>
+      <form id="authForm">
+        <div id="savedUsers" class="saved-users hidden"></div>
+        <label for="authUser">Display name</label>
+        <input type="text" id="authUser" placeholder="Your callsign" autocomplete="off" />
+        <label for="authPass">Password</label>
+        <input type="password" id="authPass" placeholder="Password" />
+        <label for="authPass2" id="authPass2Label" class="hidden">Confirm password</label>
+        <input type="password" id="authPass2" class="hidden" placeholder="Confirm password" />
+        <label class="auth-remember"><input type="checkbox" id="authRemember" checked /> Remember me</label>
+        <button type="submit" class="primary-btn auth-submit" id="authSubmit">Enter</button>
+      </form>
+      <div class="auth-foot">Secure account &middot; Real-time Kitsune network</div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <!-- ============ TITLE BAR ============ -->
+    <header id="titlebar">
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="brand">
+        <img src="./assets/kitsune-logo.png" alt="Kitsune" class="kitsune-logo" id="brandLogo" draggable="false" />
+        <div class="brand-text">
+          <span class="brand-title">KITSUNE</span>
+          <span class="brand-sub">gaming chat</span>
+        </div>
+      </div>
+      <div class="titlebar-center" id="crumbBar"></div>
+      <button id="mobileOnlineBtn" class="mobile-menu-btn online-toggle" aria-label="Online members" title="Online members">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+      </button>
+      <button id="mobileMemberBtn" class="mobile-menu-btn" aria-label="Members">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
+      <div class="window-controls">
+        <button class="win-btn" id="winMin" title="Minimize" aria-label="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="win-btn" id="winMax" title="Maximize" aria-label="Maximize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg></button>
+        <button class="win-btn win-close" id="winClose" title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </header>
+
+    <!-- ============ MAIN BODY ============ -->
+    <div id="body">
+      <!-- ---- SERVER RAIL ---- -->
+      <nav id="serverRail">
+        <button class="server-icon home" id="homeBtn" title="Direct Messages" data-server="home">
+          <img src="./assets/kitsune-logo.png" alt="Kitsune" />
+          <span class="server-tooltip">Direct Messages</span>
+        </button>
+        <button class="server-icon friends" id="friendsBtn" title="Friends" data-server="friends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="server-tooltip">Friends</span>
+        </button>
+        <div class="rail-divider"></div>
+        <div id="serverList"></div>
+        <button class="server-icon add-server" id="addServerBtn" title="Create a Shrine" data-action="add-server">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span class="server-tooltip">Create a Shrine</span>
+        </button>
+        <button class="server-icon explore" id="exploreBtn" title="Explore Shrines" data-action="explore">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span class="server-tooltip">Explore Shrines</span>
+        </button>
+      </nav>
+
+      <!-- ---- CHANNEL / DM SIDEBAR ---- -->
+      <aside id="sidebar">
+        <div id="sidebarHeader" class="sidebar-header"></div>
+        <div id="channelList" class="channel-list"></div>
+        <div id="userBar" class="user-bar"></div>
+      </aside>
+
+      <!-- ---- MAIN CONTENT ---- -->
+      <main id="content">
+        <div id="callBar" class="call-bar hidden">
+          <div class="call-bar-info">
+            <span class="dot"></span>
+            <span id="callBarText">In a call</span>
+          </div>
+          <div class="call-controls">
+            <button class="call-ctrl" id="cbVideo" title="Toggle video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>
+            <button class="call-ctrl" id="cbScreen" title="Share screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+            <button class="call-ctrl danger" id="cbHangup" title="Leave call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+        </div>
+        <div id="contentHeader" class="content-header"></div>
+        <div id="messages" class="messages"></div>
+        <div id="typingBar" class="typing-bar hidden"></div>
+        <div id="composer" class="composer">
+          <button class="composer-icon" id="attachBtn" title="Attach file" aria-label="Attach">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <div class="composer-input-wrap">
+            <div id="attachmentTray" class="attachment-tray hidden"></div>
+            <textarea id="msgInput" rows="1" placeholder="Message..."></textarea>
+          </div>
+          <button class="composer-icon emoji-btn" id="emojiBtn" title="Emoji" aria-label="Emoji"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>
+          <button class="send-btn" id="sendBtn" title="Send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+        <input type="file" id="fileInput" multiple hidden />
+      </main>
+
+      <!-- ---- MEMBER LIST ---- -->
+      <aside id="memberList" class="member-list"></aside>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE OVERLAY ============ -->
+  <div id="mobileOverlay" class="mobile-overlay"></div>
+
+  <!-- ============ ONLINE PANEL (toggable, shows all online users) ============ -->
+  <aside id="onlinePanel" class="online-panel" aria-hidden="true">
+    <div class="online-panel-header">
+      <span class="online-panel-title">ONLINE — <span id="onlinePanelCount">0</span></span>
+      <button class="ghost-btn small" id="closeOnlinePanel" title="Close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="onlinePanelBody" class="online-panel-body"></div>
+  </aside>
+
+  <!-- ============ CALL OVERLAY ============ -->
+  <div id="callOverlay" class="hidden">
+    <div class="call-header">
+      <div class="call-title" id="callTitle">VOICE CALL</div>
+      <div class="call-timer" id="callTimer">00:00</div>
+      <button class="call-ctrl" id="callMinimize" title="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="call-ctrl" id="callFullscreen" title="Toggle fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+    </div>
+    <div id="callStage" class="call-stage"></div>
+    <div class="call-controls">
+      <button class="call-ctrl" id="callMic" title="Toggle microphone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+      <button class="call-ctrl" id="callVideo" title="Toggle camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></button>
+      <button class="call-ctrl" id="callScreen" title="Share screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+      <button class="call-ctrl" id="callInvite" title="Invite friend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="call-ctrl danger" id="callHangup" title="Hang up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ============ QUICK SWITCHER ============ -->
+  <div id="quickSwitch" class="modal hidden">
+    <div class="qs-card">
+      <input type="text" id="qsInput" placeholder="Jump to channel or DM..." autocomplete="off" />
+      <div id="qsResults" class="qs-results"></div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS MODAL ============ -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>SETTINGS</span>
+        <button class="ghost-btn small" id="closeSettings" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="settings-body" id="settingsBody"></div>
+    </div>
+  </div>
+
+  <!-- ============ PROFILE MODAL ============ -->
+  <div id="profileModal" class="modal hidden">
+    <div class="modal-card" id="profileCard"></div>
+  </div>
+
+  <!-- ============ CREATE SERVER MODAL ============ -->
+  <div id="createServerModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>CREATE A SHRINE</span>
+        <button class="ghost-btn small" id="closeCreateServer" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <label>Shrine name</label>
+        <input type="text" id="newServerName" placeholder="e.g. The Den" autocomplete="off" />
+        <label>Shrine tag <span class="hint">— short glyph or emoji icon</span></label>
+        <input type="text" id="newServerIcon" placeholder="&#x1f98a;" maxlength="4" autocomplete="off" />
+        <div class="modal-actions">
+          <button class="ghost-btn" id="cancelCreateServer">Cancel</button>
+          <button class="primary-btn" id="confirmCreateServer">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADD FRIEND MODAL ============ -->
+  <div id="addFriendModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>ADD FRIEND</span>
+        <button class="ghost-btn small" id="closeAddFriend" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <label>Friend's callsign</label>
+        <input type="text" id="newFriendName" placeholder="e.g. NightFox" autocomplete="off" />
+        <div class="modal-actions">
+          <button class="ghost-btn" id="cancelAddFriend">Cancel</button>
+          <button class="primary-btn" id="confirmAddFriend">Send request</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CONTEXT MENU ============ -->
+  <div id="contextMenu" class="context-menu hidden"></div>
+
+  <!-- ============ EMOJI PICKER ============ -->
+  <div id="emojiPicker" class="emoji-picker hidden"></div>
+
+  <!-- ============ TOASTS ============ -->
+  <div id="toasts" class="toasts"></div>
+</body>
+</html>

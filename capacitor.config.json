@@ -1,0 +1,13 @@
+{
+  "appId": "ai.kitsune.chat",
+  "appName": "Kitsune",
+  "webDir": "mobile-www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#07070a"
+  }
+}

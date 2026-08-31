@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Connect Kitsune</title>
+  <link rel="stylesheet" href="setup.css">
+  <script src="setup.js" defer></script>
+</head>
+<body>
+  <main class="card">
+    <img src="../build/icon.png" alt="Kitsune">
+    <p class="eyebrow">KITSUNE DESKTOP</p>
+    <h1>Connect your den</h1>
+    <p class="copy">Enter the HTTPS address shown by your Kitsune host. You can change it later from Kitsune → Change Server.</p>
+    <form id="serverForm">
+      <label for="serverUrl">Kitsune server URL</label>
+      <input id="serverUrl" type="url" inputmode="url" placeholder="https://your-kitsune-server.example" required autofocus>
+      <p id="error" role="alert"></p>
+      <button id="connect" type="submit">Connect securely</button>
+    </form>
+  </main>
+</body>
+</html>

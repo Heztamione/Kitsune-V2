@@ -1,0 +1,14 @@
+* { box-sizing: border-box; }
+:root { color-scheme: dark; font-family: "Segoe UI", sans-serif; background: #07070a; color: #f4e9f1; }
+body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 20%, #281020, #07070a 60%); }
+.card { width: min(460px, calc(100vw - 32px)); padding: 42px; border: 1px solid #3b2032; border-radius: 18px; background: rgba(13, 11, 16, .96); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
+img { display: block; width: 96px; height: 96px; margin: 0 auto 20px; object-fit: contain; filter: drop-shadow(0 0 16px rgba(255,95,162,.45)); }
+.eyebrow { margin: 0 0 10px; color: #ff5fa2; font-size: 12px; font-weight: 800; letter-spacing: 3px; text-align: center; }
+h1 { margin: 0 0 12px; text-align: center; font-size: 30px; }
+.copy { margin: 0 0 28px; color: #ad93a5; line-height: 1.55; text-align: center; }
+label { display: block; margin-bottom: 8px; color: #d9c7d4; font-size: 13px; font-weight: 700; }
+input { width: 100%; padding: 14px 15px; border: 1px solid #3b2032; border-radius: 9px; outline: 0; background: #09070b; color: #fff; font-size: 15px; }
+input:focus { border-color: #ff5fa2; box-shadow: 0 0 0 3px rgba(255,95,162,.12); }
+button { width: 100%; margin-top: 8px; padding: 14px; border: 0; border-radius: 9px; background: #ff5fa2; color: #190b14; font-weight: 800; cursor: pointer; }
+button:disabled { cursor: wait; opacity: .55; }
+#error { min-height: 20px; margin: 8px 0 0; color: #ff7777; font-size: 12px; }

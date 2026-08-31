@@ -1,0 +1,70 @@
+{
+  "name": "kitsune-v2",
+  "version": "2.2.0",
+  "description": "Kitsune v2 — a greater gaming chat media. Black & pink, professional, local-first.",
+  "main": "desktop/main.js",
+  "author": "Yazem",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "app": "node server.js",
+    "db:migrate": "node src/server/migrate.js",
+    "desktop": "electron .",
+    "build:pc": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-pc.ps1",
+    "android:add": "node tools/prepare-mobile.js && cap add android",
+    "android:sync": "node tools/prepare-mobile.js && cap sync android",
+    "build:android": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-android.ps1",
+    "check": "node --check server.js && node --check src/server/auth.js && node --check src/server/services.js && node --check src/server/realtime.js && node --check src/renderer/app.js && node --check desktop/main.js && node --check desktop/preload.js && node --check mobile-www/app.js",
+    "test": "node --test test/production-contract.test.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cookie": "^1.0.2",
+    "dotenv": "^16.4.7",
+    "electron-updater": "^6.8.9",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.13.3",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "ai.kitsune.chat.desktop",
+    "productName": "Kitsune",
+    "artifactName": "Kitsune-v${version}-Setup.${ext}",
+    "directories": {
+      "output": "releases/pc",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/**/*",
+      "build/icon.png",
+      "package.json",
+      "!node_modules/**/{*.md,*.markdown,LICENSE,CHANGELOG,test,tests,__tests__,docs,example,examples,*.ts,*.map,*.flow}"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kitsune"
+    }
+  }
+}

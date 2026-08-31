@@ -1,0 +1,15 @@
+# Normalize line endings: always commit LF, checkout as-is on each platform.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.apk binary
+*.exe binary
+*.jar binary
+*.bin binary
+*.dat binary

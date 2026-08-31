@@ -1,0 +1,47 @@
+# ---- Secrets & credentials ----
+.env
+.env.*
+!.env.example
+*.cookies
+mobile.cookies
+pc.cookies
+kitsune-v2-backup.json
+
+# ---- Backups (may contain credentials) ----
+backups/
+
+# ---- Build artifacts & releases ----
+releases/
+build/
+dist/
+*.exe
+*.apk
+*.idsig
+*.blockmap
+*.sha256
+
+# ---- Dependencies ----
+node_modules/
+
+# ---- Logs & runtime ----
+*.log
+server.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Electron / Capacitor output ----
+out/
+.android/
+ios/
+
+# ---- OS / editor cruft ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# ---- Hugging Face Space local cache (never commit) ----
+.cache/

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; img-src 'self' https: data:; style-src 'self'; script-src 'self'; form-action 'self' https:; navigate-to 'self' https:">
+  <meta name="theme-color" content="#07070a">
+  <title>Kitsune</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="card">
+    <img src="kitsune-logo.png" alt="Kitsune">
+    <p class="eyebrow">KITSUNE ANDROID</p>
+    <h1>Connect your den</h1>
+    <p class="copy">Paste the HTTPS URL displayed by your Kitsune host. The address stays on this device.</p>
+    <form id="serverForm">
+      <label for="serverUrl">Kitsune server URL</label>
+      <input id="serverUrl" type="url" inputmode="url" autocapitalize="none" autocomplete="url" placeholder="https://your-server.example" required>
+      <p id="error" role="alert"></p>
+      <button type="submit">Open Kitsune</button>
+    </form>
+  </main>
+</body>
+</html>
