@@ -1107,7 +1107,13 @@
 
   function peerFor(user, initiate = false) {
     const userId = typeof user === 'string' ? user : user.id;
-    if (state.call.peers[userId]) return state.call.peers[userId];
+    const existing = state.call.peers[userId];
+    if (existing) {
+      // If the existing peer connection is dead, remove it and create a new one.
+      const dead = ['closed', 'failed'].includes(existing.pc.signalingState) || ['closed', 'failed'].includes(existing.pc.connectionState);
+      if (dead) removePeer(userId);
+      else return existing;
+    }
     const profile = typeof user === 'string' ? findUser(user) || { id: user, name: 'Kitsune User', avatar: '' } : user;
     const pc = new RTCPeerConnection({ iceServers: state.iceServers || [] });
     const peer = state.call.peers[userId] = { pc, user: profile, stream: new MediaStream(), pendingIce: [], screen: Boolean(state.call.mediaStates?.[userId]), makingOffer: false, pendingNegotiation: false };
@@ -1127,21 +1133,32 @@
       renderCallStage();
     };
     pc.onconnectionstatechange = () => {
-      if (['failed', 'closed'].includes(pc.connectionState)) removePeer(userId);
+      if (['failed', 'closed'].includes(pc.connectionState)) {
+        if (pc.connectionState === 'failed') {
+          // Try an ICE restart before giving up, but only if the peer is still stable.
+          try {
+            if (peer.pc.signalingState === 'stable' && state.call.active) {
+              setTimeout(() => createOffer(userId, { iceRestart: true }), 0);
+              return;
+            }
+          } catch (_) {}
+        }
+        removePeer(userId);
+      }
     };
     if (state.call.screen) setTimeout(() => wsSend({ type: 'call-media-state', roomId: state.call.roomId, screen: true }), 0);
     if (initiate) createOffer(userId);
     return peer;
   }
 
-  async function createOffer(userId) {
+  async function createOffer(userId, options = {}) {
     const peer = state.call.peers[userId];
     if (!peer) return;
     if (peer.makingOffer || peer.pc.signalingState !== 'stable') { peer.pendingNegotiation = true; return; }
     peer.makingOffer = true;
     peer.pendingNegotiation = false;
     try {
-      const offer = await peer.pc.createOffer();
+      const offer = await peer.pc.createOffer(options);
       if (peer.pc.signalingState !== 'stable') { peer.pendingNegotiation = true; return; }
       await peer.pc.setLocalDescription(offer);
       wsSend({ type: 'rtc-offer', roomId: state.call.roomId, targetId: userId, description: peer.pc.localDescription, screen: Boolean(state.call.screen) });
@@ -1409,6 +1426,8 @@
   let socket = null;
   let wsRetry = 1000;
 
+  let callRejoinTimer = null;
+
   function connectWS() {
     if (socket || !state.me) return;
     if (typeof WebSocket === 'undefined') { console.warn('WebSocket not supported'); return; }
@@ -1416,9 +1435,26 @@
     const wsUrl = `${proto}//${location.host}/ws`;
     try {
       socket = new WebSocket(wsUrl);
-      socket.onopen = () => { wsRetry = 1000; toast('Connected to Kitsune', 'info'); wsJoin(); };
+      socket.onopen = () => {
+        wsRetry = 1000;
+        toast('Connected to Kitsune', 'info');
+        wsJoin();
+        // If we were in a voice call when the socket dropped, rejoin the channel.
+        if (state.call.active && state.call.channelId) {
+          // Clean up dead peers before rejoining so we re-establish fresh connections.
+          for (const userId of Object.keys(state.call.peers)) {
+            const p = state.call.peers[userId];
+            if (['closed', 'failed'].includes(p?.pc?.signalingState) || ['closed', 'failed'].includes(p?.pc?.connectionState)) removePeer(userId);
+          }
+          wsSend({ type: 'voice-join', channelId: state.call.channelId });
+        } else if (state.call.active && !state.call.channelId) {
+          // Direct/DM call rooms do not persist across socket reconnects.
+          // End the local call and let the user call again.
+          endCall(false);
+        }
+      };
       socket.onmessage = (e) => { onSocketMessage(JSON.parse(e.data)); };
-      socket.onclose = () => { socket = null; toast('Disconnected from Kitsune', 'error'); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
+      socket.onclose = () => { socket = null; if (callRejoinTimer) { clearTimeout(callRejoinTimer); callRejoinTimer = null; } toast('Disconnected from Kitsune', 'error'); setTimeout(connectWS, wsRetry); wsRetry = Math.min(wsRetry * 2, 30000); };
       socket.onerror = (e) => { toast('Connection error', 'error'); console.warn('ws error', e); };
     } catch (e) { toast('Could not connect', 'error'); console.warn('ws connect failed', e); }
   }
