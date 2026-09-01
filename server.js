@@ -278,6 +278,10 @@ app.post('/api/guilds/:guildId/members/:userId/ban', auth.requireAuth, async (re
 const renderer = path.join(__dirname, 'src', 'renderer');
 const website = path.join(__dirname, 'website');
 const baccarat = path.join(__dirname, '..', 'Kitsune Baccarat');
+
+// Explicitly serve the landing page at the root so reverse proxies (Render, etc.)
+// that normalize the request path still hit index.html.
+app.get('/', (req, res) => res.sendFile(path.join(website, 'index.html')));
 const baccaratAvailable = fs.existsSync(baccarat);
 app.use('/app', express.static(renderer, { index: 'index.html', maxAge: config.production ? '1h' : 0, setHeaders(res, file) { if (/\.(html|js|css)$/.test(file)) res.setHeader('Cache-Control', 'no-cache'); } }));
 if (baccaratAvailable) {
