@@ -73,6 +73,7 @@ app.use('/downloads', downloadLimit);
 const iceServers = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
 if (config.turnUrls.length && config.turnUsername && config.turnCredential) iceServers.push({ urls: config.turnUrls, username: config.turnUsername, credential: config.turnCredential });
 const realtime = new Realtime(iceServers);
+app.use((req, res, next) => { req.realtime = realtime; next(); });
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 const APP_VERSION = pkg.version || '2.2.0';
 const gradlePath = path.join(__dirname, 'android', 'app', 'build.gradle');

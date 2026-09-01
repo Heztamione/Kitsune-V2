@@ -190,6 +190,13 @@ async function register(req, res) {
       else await client.query("INSERT INTO guild_members(guild_id, user_id, role) SELECT id, $1, 'Wanderer' FROM guilds WHERE is_public = true ON CONFLICT DO NOTHING", [created.rows[0].id]);
       return created.rows[0];
     });
+    // Notify existing members that a new user joined the public shrine in real time.
+    try {
+      const publicGuild = await pool.query('SELECT * FROM guilds WHERE is_public = true LIMIT 1');
+      if (publicGuild.rowCount && req.realtime) {
+        req.realtime.broadcastGuild(publicGuild.rows[0].id, 'member-upsert', { serverId: publicGuild.rows[0].id, user: publicUser(user) }, user.id).catch(() => {});
+      }
+    } catch (_) {}
     await issueSession(req, res, user.id, Boolean(req.body.remember));
     res.status(201).json({ user: publicUser(user), recoveryCode });
   } catch (error) {

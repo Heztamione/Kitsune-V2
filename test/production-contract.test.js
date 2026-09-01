@@ -41,7 +41,7 @@ test('realtime supports messaging presence and calls', () => {
 test('screen sharing prioritizes motion and per-stream fullscreen', () => {
   const client = read('src/renderer/app.js');
   assert.match(client, /getDisplayMedia/);
-  assert.match(client, /maxFramerate = screen \? 60 : 30/);
+  assert.match(client, /maxFramerate = screen \? 120 : 60/);
   assert.match(client, /maintain-framerate/);
   assert.match(client, /tile-fullscreen/);
   assert.match(client, /requestFullscreen/);
