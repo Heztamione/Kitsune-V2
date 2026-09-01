@@ -114,9 +114,13 @@ public class NativeWebRTC {
             WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
             Display display = wm.getDefaultDisplay();
             display.getRealMetrics(metrics);
-            int width = Math.min(1280, metrics.widthPixels);
-            int height = Math.min(720, metrics.heightPixels);
-            int fps = 30;
+
+            // Capture up to 1080p and the display's refresh rate (capped at 120 fps).
+            // High-refresh Android devices (90/120 Hz) will now share at 120 fps.
+            int width = Math.min(1920, metrics.widthPixels);
+            int height = Math.min(1080, Math.round(width / ((float) metrics.widthPixels / (float) metrics.heightPixels)));
+            int fps = Math.min(120, Math.round(display.getRefreshRate()));
+            if (fps < 30) fps = 30;
 
             // ScreenCapturerAndroid takes (Intent data, MediaProjection.Callback callback)
             screenCapturer = new ScreenCapturerAndroid(data, new android.media.projection.MediaProjection.Callback() {

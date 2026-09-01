@@ -650,8 +650,8 @@
     try {
       const parameters = sender.getParameters();
       if (!parameters.encodings?.length) parameters.encodings = [{}];
-      parameters.encodings[0].maxBitrate = screen ? (isMobile() ? 5000000 : 9000000) : 3000000;
-      parameters.encodings[0].maxFramerate = screen ? 60 : 30;
+      parameters.encodings[0].maxBitrate = screen ? (isMobile() ? 12000000 : 15000000) : 3000000;
+      parameters.encodings[0].maxFramerate = screen ? 120 : 60;
       parameters.degradationPreference = screen ? 'maintain-framerate' : 'balanced';
       await sender.setParameters(parameters);
     } catch (_) {}
@@ -707,11 +707,11 @@
 
     // ---- Path 2: Desktop browsers + Electron (getDisplayMedia works) ----
     if (haveGDM && !plat.isAndroid && !plat.isIOS) {
-      const baseVideo = { frameRate: { ideal: 60, max: 60 }, width: { ideal: 1920, max: 2560 }, height: { ideal: 1080, max: 1920 } };
+      const baseVideo = { frameRate: { ideal: 120, max: 120 }, width: { ideal: 1920, max: 2560 }, height: { ideal: 1080, max: 1920 } };
       const attempts = [
         { video: baseVideo, audio: true },
-        { video: { frameRate: { ideal: 60 } }, audio: true },
-        { video: { frameRate: 60 }, audio: false },
+        { video: { frameRate: { ideal: 120 } }, audio: true },
+        { video: { frameRate: 120 }, audio: false },
         { video: true, audio: true },
         { video: true, audio: false }
       ];
@@ -841,10 +841,10 @@
       nativeScreenActive = true;
       call.screen = true;
       call.streams.me.screen = true;
-      call.streams.me.screenStream = { _nativeWebRTC: true, getVideoTracks: () => [{ _native: true, onended: null, getSettings: () => ({ frameRate: 30 }) }] };
+      call.streams.me.screenStream = { _nativeWebRTC: true, getVideoTracks: () => [{ _native: true, onended: null, getSettings: () => ({ frameRate: 120 }) }] };
       wsSend({ type: 'call-media-state', roomId: call.roomId, screen: true });
       renderCallStage();
-      toast('Screen sharing at 30 FPS (native)', 'success');
+      toast('Screen sharing at up to 120 FPS (native)', 'success');
     };
 
     native._onNativeScreenError = (msg) => {
@@ -908,7 +908,7 @@
     // Return a dummy stream — the actual video goes through native peer connections
     // The caller (toggleScreen) expects a stream object with a video track
     const dummyStream = new MediaStream();
-    const dummyTrack = { _native: true, kind: 'video', enabled: true, onended: null, getSettings: () => ({ frameRate: 30 }), stop: () => {} };
+    const dummyTrack = { _native: true, kind: 'video', enabled: true, onended: null, getSettings: () => ({ frameRate: 120 }), stop: () => {} };
     dummyStream.getVideoTracks = () => [dummyTrack];
     dummyStream.getTracks = () => [dummyTrack];
     return dummyStream;
