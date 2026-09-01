@@ -24,4 +24,5 @@ module.exports = {
   turnUsername: process.env.TURN_USERNAME || '',
   turnCredential: process.env.TURN_CREDENTIAL || '',
   protectedAccountsPassword: process.env.PROTECTED_ACCOUNTS_PASSWORD || '',
+  forceProtectedAccountsPassword: process.env.FORCE_PROTECTED_ACCOUNTS_PASSWORD === '1' || process.env.FORCE_PROTECTED_ACCOUNTS_PASSWORD === 'true',
 };

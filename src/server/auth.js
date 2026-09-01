@@ -58,10 +58,10 @@ async function seedProtectedAccounts() {
         await pool.query('UPDATE users SET platform_role = $1 WHERE id = $2', [role, userId]);
         console.log(`[auth] Updated protected account ${usernameKey} to role: ${role}`);
       }
-      if (config.protectedAccountsPassword) {
+      if (config.forceProtectedAccountsPassword && config.protectedAccountsPassword) {
         const passwordHash = await bcrypt.hash(config.protectedAccountsPassword, 12);
         await pool.query('UPDATE users SET password_hash = $1, recovery_code_hash = NULL WHERE id = $2', [passwordHash, userId]);
-        console.log(`[auth] Restored protected account credentials and removed recovery code: ${usernameKey} (${role})`);
+        console.log(`[auth] Forced password reset for protected account: ${usernameKey} (${role})`);
       } else {
         console.log(`[auth] Protected account exists, preserving password: ${usernameKey} (${role})`);
       }

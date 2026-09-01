@@ -240,6 +240,11 @@ async function query(text, params = []) {
     tables.users.set(id, user);
     return { rows: [{ ...user }], rowCount: 1 };
   }
+  if (upper.startsWith('SELECT * FROM USERS WHERE ID = $1')) {
+    const userId = params[0];
+    const u = tables.users.get(userId);
+    return { rows: u ? [{ ...u }] : [], rowCount: u ? 1 : 0 };
+  }
   if (upper.startsWith('SELECT * FROM USERS WHERE USERNAME_KEY')) {
     const usernameKey = params[0];
     for (const u of tables.users.values()) { if (u.username_key === usernameKey) return { rows: [{ ...u }], rowCount: 1 }; }
