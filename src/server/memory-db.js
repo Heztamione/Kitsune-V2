@@ -286,6 +286,12 @@ async function query(text, params = []) {
     if (u) { u.recovery_code_hash = recoveryCodeHash; u.updated_at = now(); }
     return { rows: [], rowCount: u ? 1 : 0 };
   }
+  if (upper.startsWith('UPDATE USERS SET PLATFORM_ROLE = $1 WHERE ID = $2')) {
+    const [role, userId] = params;
+    const u = tables.users.get(userId);
+    if (u) { u.platform_role = role; u.updated_at = now(); }
+    return { rows: [], rowCount: u ? 1 : 0 };
+  }
 
   // --- Guilds ---
   if (upper.startsWith('INSERT INTO GUILDS(NAME, ICON, OWNER_ID, IS_PUBLIC) VALUES')) {
@@ -294,6 +300,28 @@ async function query(text, params = []) {
     const guild = { id, name, icon, owner_id: ownerId, is_public: Boolean(isPublic), created_at: now() };
     tables.guilds.set(id, guild);
     return { rows: [{ id }], rowCount: 1 };
+  }
+  if (upper.startsWith('SELECT * FROM GUILDS WHERE IS_PUBLIC = TRUE LIMIT 1')) {
+    for (const g of tables.guilds.values()) {
+      if (g.is_public) return { rows: [{ ...g }], rowCount: 1 };
+    }
+    return { rows: [], rowCount: 0 };
+  }
+  if (upper.startsWith('SELECT 1 FROM GUILD_MEMBERS WHERE GUILD_ID = $1 AND USER_ID = $2')) {
+    const [guildId, userId] = params;
+    const m = tables.guild_members.get(`${guildId}:${userId}`);
+    return { rows: m ? [{ exists: true }] : [], rowCount: m ? 1 : 0 };
+  }
+  if (upper.startsWith('INSERT INTO GUILD_MEMBERS(GUILD_ID, USER_ID, ROLE) VALUES ($1, $2, $3)')) {
+    const [guildId, userId, role] = params;
+    tables.guild_members.set(`${guildId}:${userId}`, { guild_id: guildId, user_id: userId, role, nickname: null, joined_at: now() });
+    return { rows: [], rowCount: 1 };
+  }
+  if (upper.startsWith('UPDATE GUILDS SET OWNER_ID = $1 WHERE ID = $2')) {
+    const [ownerId, guildId] = params;
+    const g = tables.guilds.get(guildId);
+    if (g) { g.owner_id = ownerId; g.updated_at = now(); }
+    return { rows: [], rowCount: g ? 1 : 0 };
   }
   if (upper.startsWith('INSERT INTO GUILDS(NAME, ICON, OWNER_ID) VALUES')) {
     const [name, icon, ownerId] = params;

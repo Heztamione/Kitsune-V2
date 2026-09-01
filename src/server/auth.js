@@ -44,40 +44,65 @@ async function seedProtectedAccounts() {
     ? [tenkoUsername, ...protectedUsernames.filter(u => u !== tenkoUsername)]
     : [...protectedUsernames];
 
+  // Create or update protected accounts. Existing accounts keep their current password hash.
+  let tenkoId = null;
+  const protectedIds = [];
   for (const usernameKey of seedOrder) {
-    const existing = await pool.query('SELECT id FROM users WHERE username_key = $1', [usernameKey]);
-    if (existing.rowCount) continue;
-
-    const legacy = legacyAccounts[usernameKey];
-    const displayName = legacy ? legacy.name : usernameKey;
-    // Use legacy SHA-256 hash if available, otherwise generate a random password (account exists but needs password reset)
-    const passwordHash = legacy ? legacy.hash : await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     const isDesignatedTenko = usernameKey === tenkoUsername;
-    const role = (legacy && legacy.role === 'Tenko') ? 'Tenko' : (isDesignatedTenko ? 'Tenko' : 'Wanderer');
-    const recoveryCode = generateRecoveryCode();
-    const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
-    const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
+    const role = isDesignatedTenko ? 'Tenko' : 'Wanderer';
+    const existing = await pool.query('SELECT * FROM users WHERE username_key = $1', [usernameKey]);
+    let userId;
+    if (existing.rowCount) {
+      userId = existing.rows[0].id;
+      if (existing.rows[0].platform_role !== role) {
+        await pool.query('UPDATE users SET platform_role = $1 WHERE id = $2', [role, userId]);
+        console.log(`[auth] Updated protected account ${usernameKey} to role: ${role}`);
+      }
+      console.log(`[auth] Protected account exists, preserving password: ${usernameKey} (${role})`);
+    } else {
+      const legacy = legacyAccounts[usernameKey];
+      const displayName = legacy ? legacy.name : usernameKey;
+      const passwordHash = legacy ? legacy.hash : await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+      const recoveryCode = generateRecoveryCode();
+      const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
+      const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
+      const created = await pool.query(
+        'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [displayName, usernameKey, passwordHash, recoveryCodeHash, avatar, role]
+      );
+      userId = created.rows[0].id;
+      console.log(`[auth] Seeded protected account: ${displayName} (${role})`);
+      if (!legacy) console.log(`[auth] Recovery code for ${displayName}: ${recoveryCode}`);
+    }
+    protectedIds.push(userId);
+    if (isDesignatedTenko) tenkoId = userId;
+  }
 
+  // Ensure the public guild exists and is owned by the Tenko. If a backup restored an
+  // older public guild with a different owner, the Tenko takes it over.
+  if (tenkoId) {
     try {
-      let first = false;
-      let created;
       await transaction(async client => {
-        const count = await client.query('SELECT count(*)::int AS count FROM users');
-        first = count.rows[0].count === 0;
-        created = (await client.query(
-          'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-          [displayName, usernameKey, passwordHash, recoveryCodeHash, avatar, first ? 'Tenko' : role]
-        )).rows[0];
-        if (first) {
-          await seedPublicGuild(client, created.id);
-        } else {
-          await client.query("INSERT INTO guild_members(guild_id, user_id, role) SELECT id, $1, 'Wanderer' FROM guilds WHERE is_public = true ON CONFLICT DO NOTHING", [created.id]);
+        let publicGuild = await client.query('SELECT * FROM guilds WHERE is_public = true LIMIT 1');
+        if (!publicGuild.rowCount) {
+          await seedPublicGuild(client, tenkoId);
+          publicGuild = await client.query('SELECT * FROM guilds WHERE is_public = true LIMIT 1');
+        }
+        const guildId = publicGuild.rows[0].id;
+        if (publicGuild.rows[0].owner_id !== tenkoId) {
+          await client.query('UPDATE guilds SET owner_id = $1 WHERE id = $2', [tenkoId, guildId]);
+          console.log(`[auth] Public guild owner set to Tenko: ${tenkoId}`);
+        }
+        for (const userId of protectedIds) {
+          const memberRole = userId === tenkoId ? 'Tenko' : 'Wanderer';
+          const exists = await client.query('SELECT 1 FROM guild_members WHERE guild_id = $1 AND user_id = $2', [guildId, userId]);
+          if (!exists.rowCount) {
+            await client.query('INSERT INTO guild_members(guild_id, user_id, role) VALUES ($1, $2, $3)', [guildId, userId, memberRole]);
+          }
         }
       });
-      console.log(`[auth] Seeded protected account: ${displayName} (${first ? 'Tenko' : role})`);
-      console.log(`[auth] Recovery code for ${displayName}: ${recoveryCode}`);
     } catch (e) {
-      console.error(`[auth] Failed to seed protected account ${usernameKey}:`, e.message);
+      console.error('[auth] Failed to ensure public guild:', e.message);
     }
   }
 }
