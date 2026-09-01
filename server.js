@@ -305,6 +305,27 @@ const renderer = path.join(__dirname, 'src', 'renderer');
 const website = path.join(__dirname, 'website');
 const baccarat = path.join(__dirname, '..', 'Kitsune Baccarat');
 
+// Download endpoints for PC and Android installers.
+// The build scripts place artifacts in releases/pc and releases/android.
+function findRelease(dir, ext) {
+  if (!fs.existsSync(dir)) return null;
+  const files = fs.readdirSync(dir)
+    .filter(f => f.endsWith(ext))
+    .map(f => ({ file: f, path: path.join(dir, f), mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime);
+  return files[0] || null;
+}
+app.get('/downloads/windows', (req, res) => {
+  const release = findRelease(path.join(__dirname, 'releases', 'pc'), '.exe');
+  if (!release) return res.status(404).type('text').send('Windows installer has not been built. Run: npm run build:pc');
+  res.download(release.path, release.file);
+});
+app.get('/downloads/android', (req, res) => {
+  const release = findRelease(path.join(__dirname, 'releases', 'android'), '.apk');
+  if (!release) return res.status(404).type('text').send('Android APK has not been built. Run: npm run build:android');
+  res.download(release.path, release.file);
+});
+
 // Explicitly serve the landing page at the root so reverse proxies (Render, etc.)
 // that normalize the request path still hit index.html.
 app.get('/', (req, res) => res.sendFile(path.join(website, 'index.html')));
