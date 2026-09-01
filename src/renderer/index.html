@@ -30,10 +30,10 @@
         <label for="authUser">Display name</label>
         <input type="text" id="authUser" placeholder="Your callsign" autocomplete="off" />
         <label for="authPass">Password</label>
-        <input type="password" id="authPass" placeholder="Password" />
+        <div class="pass-wrap"><input type="password" id="authPass" placeholder="Password" /><button type="button" class="toggle-pass" data-target="authPass" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         <a href="#" id="forgotPasswordLink" class="forgot-link hidden">Forgot password?</a>
         <label for="authPass2" id="authPass2Label" class="hidden">Confirm password</label>
-        <input type="password" id="authPass2" class="hidden" placeholder="Confirm password" />
+        <div class="pass-wrap hidden" id="authPass2Wrap"><input type="password" id="authPass2" placeholder="Confirm password" /><button type="button" class="toggle-pass" data-target="authPass2" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         <label class="auth-remember"><input type="checkbox" id="authRemember" checked /> Remember me</label>
         <button type="submit" class="primary-btn auth-submit" id="authSubmit">Enter</button>
       </form>
@@ -43,9 +43,9 @@
         <label for="forgotCode">Recovery code</label>
         <input type="text" id="forgotCode" placeholder="XXXX-XXXX-XXXX-XXXX" />
         <label for="forgotNewPass">New password</label>
-        <input type="password" id="forgotNewPass" placeholder="New password" />
+        <div class="pass-wrap"><input type="password" id="forgotNewPass" placeholder="New password" /><button type="button" class="toggle-pass" data-target="forgotNewPass" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         <label for="forgotConfirmPass">Confirm new password</label>
-        <input type="password" id="forgotConfirmPass" placeholder="Confirm new password" />
+        <div class="pass-wrap"><input type="password" id="forgotConfirmPass" placeholder="Confirm new password" /><button type="button" class="toggle-pass" data-target="forgotConfirmPass" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         <button type="submit" class="primary-btn auth-submit" id="forgotSubmit">Reset password</button>
         <button type="button" class="ghost-btn auth-submit" id="forgotCancel">Back to login</button>
       </form>

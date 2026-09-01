@@ -43,6 +43,8 @@
     gamepad: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>',
     ban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
     expand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94m4.5-2.12A10.07 10.07 0 0 1 12 4c7 0 11 8 11 8a18.45 18.45 0 0 1-2.74 3.86"/><line x1="1" y1="1" x2="23" y2="23"/></svg>',
   };
 
   function $id(id) { return document.getElementById(id); }
@@ -2110,9 +2112,9 @@
           <div class="settings-row"><div><div class="sr-label">Server role</div><div class="sr-desc">Roles are controlled by server-side permissions and cannot be claimed from the browser.</div></div><b>${escapeHtml(state.me.role)}</b></div>
           <div class="settings-row"><div><div class="sr-label">Change password</div><div class="sr-desc">Update your account password.</div></div><button class="primary-btn small" id="openChangePassword">Change</button></div>
           <div id="changePasswordForm" class="hidden" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
-            <input type="password" id="currentPassword" placeholder="Current password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
-            <input type="password" id="newPassword" placeholder="New password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
-            <input type="password" id="confirmPassword" placeholder="Confirm new password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
+            <div class="pass-wrap"><input type="password" id="currentPassword" placeholder="Current password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);"><button type="button" class="toggle-pass" data-target="currentPassword" aria-label="Show password">${SVG.eye}</button></div>
+            <div class="pass-wrap"><input type="password" id="newPassword" placeholder="New password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);"><button type="button" class="toggle-pass" data-target="newPassword" aria-label="Show password">${SVG.eye}</button></div>
+            <div class="pass-wrap"><input type="password" id="confirmPassword" placeholder="Confirm new password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);"><button type="button" class="toggle-pass" data-target="confirmPassword" aria-label="Show password">${SVG.eye}</button></div>
             <div style="display:flex;gap:10px;">
               <button class="primary-btn" id="savePassword">Update Password</button>
               <button class="ghost-btn" id="cancelChangePassword">Cancel</button>
@@ -2530,6 +2532,16 @@
     $id('forgotPasswordLink').addEventListener('click', (e) => { e.preventDefault(); showForgotForm(); });
     $id('forgotPasswordForm').addEventListener('submit', handleForgotPassword);
     $id('forgotCancel').addEventListener('click', () => { hideForgotForm(); });
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-pass');
+      if (!btn) return;
+      const input = $id(btn.dataset.target);
+      if (!input) return;
+      const visible = input.type === 'text';
+      input.type = visible ? 'password' : 'text';
+      btn.innerHTML = visible ? SVG.eye : SVG.eyeOff;
+      btn.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
+    });
     $id('copyRecoveryCode').addEventListener('click', () => {
       const code = $id('recoveryCodeValue').textContent;
       navigator.clipboard.writeText(code).then(() => toast('Recovery code copied')).catch(() => toast('Could not copy', 'error'));
@@ -2618,6 +2630,7 @@
     $id('tabLogin').classList.toggle('active', mode==='login');
     $id('tabRegister').classList.toggle('active', mode==='register');
     $id('authPass2').classList.toggle('hidden', mode==='login');
+    $id('authPass2Wrap')?.classList.toggle('hidden', mode==='login');
     $id('authPass2Label').classList.toggle('hidden', mode==='login');
     $id('authSubmit').textContent = mode==='login' ? 'Enter' : 'Create account';
     $id('authError').classList.add('hidden');

@@ -61,6 +61,11 @@
 .auth-card label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-top: 4px; }
 .auth-card input { width: 100%; background: var(--panel-deep); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.12s, box-shadow 0.12s; box-sizing: border-box; font-family: var(--font); }
 .auth-card input:focus { border-color: var(--pink); box-shadow: 0 0 0 2px rgba(255,95,162,0.18); }
+.pass-wrap { position: relative; }
+.pass-wrap input { padding-right: 44px; }
+.toggle-pass { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; transition: color 0.12s; }
+.toggle-pass:hover { color: var(--pink); background: rgba(255,95,162,0.08); }
+.settings-row .pass-wrap input { background: var(--panel-deep); border: 1px solid var(--border); border-radius: 6px; padding: 8px 40px 8px 10px; color: var(--text); font-size: 14px; width: 100%; box-sizing: border-box; }
 .auth-submit { margin-top: 10px; width: 100%; }
 .auth-foot { font-size: 11px; color: var(--text-faint); margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-soft); letter-spacing: 0.5px; }
 
