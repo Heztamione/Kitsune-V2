@@ -9,7 +9,13 @@ const config = require('./src/server/config');
 const { pool, migrate } = require('./src/server/db');
 const auth = require('./src/server/auth');
 const services = require('./src/server/services');
+const backup = require('./src/server/backup');
 const Realtime = require('./src/server/realtime');
+
+const requireTenko = (req, res, next) => {
+  if (!req.user || req.user.platform_role !== 'Tenko') return res.status(403).json({ error: 'Tenko access required.' });
+  next();
+};
 
 const app = express();
 if (config.trustProxy) app.set('trust proxy', 1);
@@ -148,6 +154,22 @@ app.post('/api/auth/logout', auth.requireAuth, auth.logout);
 app.post('/api/auth/change-password', authLimit, auth.requireAuth, auth.changePassword);
 app.post('/api/auth/regenerate-recovery', authLimit, auth.requireAuth, auth.regenerateRecovery);
 app.get('/api/auth/me', auth.requireAuth, (req, res) => res.json({ user: auth.publicUser(req.user) }));
+
+// Backup/restore — Tenko only. Backup contains password hashes; keep it secure.
+app.get('/api/admin/export', auth.requireAuth, requireTenko, (req, res, next) => {
+  try {
+    const data = backup.exportDb();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="kitsune-backup.json"');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (error) { next(error); }
+});
+app.post('/api/admin/import', auth.requireAuth, requireTenko, express.json({ limit: '50mb' }), (req, res, next) => {
+  try {
+    backup.importDb(req.body);
+    res.json({ success: true });
+  } catch (error) { next(error); }
+});
 app.patch('/api/users/me', auth.requireAuth, async (req, res, next) => {
   try {
     const username = String(req.body.name || '').trim().replace(/\s+/g, ' ');
@@ -391,6 +413,7 @@ server.on('upgrade', async (req, socket, head) => {
 async function start() {
   await migrate();
   await pool.query('DELETE FROM sessions WHERE expires_at <= now()');
+  await backup.restoreFromUrlIfEmpty();
   await auth.seedProtectedAccounts();
   server.listen(config.port, '0.0.0.0', () => {
     console.log(`Kitsune v2 running at http://localhost:${config.port}/`);

@@ -2083,6 +2083,7 @@
       { id: 'appearance', label: 'Appearance' },
       { id: 'voice', label: 'Voice & Video' },
       { id: 'app', label: 'App' },
+      ...(state.me.role === 'Tenko' ? [{ id: 'backup', label: 'Backup' }] : []),
       { id: 'danger', label: 'Danger Zone' },
     ];
     body.innerHTML = `<div class="settings-nav">${sections.map(s => `<div class="settings-nav-item active" data-sec="${s.id}">${s.label}</div>`).join('')}</div><div class="settings-pane" id="settingsPane"></div>`;
@@ -2336,6 +2337,40 @@
         const closeBtn = $id('closeSettings');
         if (closeBtn) closeBtn.addEventListener('click', () => { if (removeListener) removeListener(); }, { once: true });
       }
+    } else if (sec === 'backup') {
+      pane.innerHTML = `
+        <div class="settings-section"><h4>Backup & Restore</h4><div class="sec-desc">Download a full server backup or restore from one. Keep the file private — it contains password hashes.</div>
+          <div class="settings-row"><div><div class="sr-label">Export backup</div><div class="sr-desc">Download all users, shrines, channels, messages, and friends as JSON.</div></div><button class="primary-btn" id="exportBackup">Export</button></div>
+          <div class="settings-row"><div><div class="sr-label">Import backup</div><div class="sr-desc">Upload a JSON backup to restore data. This replaces the current in-memory database.</div></div><button class="primary-btn" id="importBackup">Import</button></div>
+          <input type="file" id="backupFile" accept="application/json,.json" style="display:none">
+        </div>`;
+      $id('exportBackup').addEventListener('click', async () => {
+        try {
+          const data = await api('/api/admin/export');
+          const text = JSON.stringify(data, null, 2);
+          const blob = new Blob([text], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `kitsune-backup-${new Date().toISOString().slice(0,10)}.json`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch (error) { toast(error.message, 'error'); }
+      });
+      $id('importBackup').addEventListener('click', () => $id('backupFile').click());
+      $id('backupFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        if (!confirm('This will replace the current server data. Continue?')) { e.target.value = ''; return; }
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          await api('/api/admin/import', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+          toast('Backup imported. Refresh to load restored data.');
+          await refreshBootstrap();
+          renderServerRail(); renderContent();
+        } catch (error) { toast(error.message, 'error'); }
+        e.target.value = '';
+      });
     } else if (sec === 'danger') {
       pane.innerHTML = `
         <div class="settings-section"><h4>Danger Zone</h4>

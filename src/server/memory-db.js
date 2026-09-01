@@ -796,4 +796,4 @@ async function transaction(fn) {
   return fn(client);
 }
 
-module.exports = { pool, migrate, transaction, tables };
+module.exports = { pool, migrate, transaction, tables, saveToDisk };
