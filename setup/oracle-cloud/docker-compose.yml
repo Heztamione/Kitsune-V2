@@ -20,7 +20,7 @@ services:
       # - TURN_USERNAME=...
       # - TURN_CREDENTIAL=...
     volumes:
-      - kitsune-data:/home/user/.local/share/kitsune
+      - kitsune-data:/home/node/.local/share/kitsune
 
 volumes:
   kitsune-data:

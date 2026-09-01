@@ -84,7 +84,7 @@ Your app will be available at `https://kitsune-v2.onrender.com` (or a Render-ass
 This repo is configured to run as a Hugging Face Space (`sdk: docker` in the `README.md` front matter, with a `Dockerfile` at the repo root). The Space runs the full Kitsune server in **demo mode** — an in-memory database with disk persistence, no PostgreSQL required.
 
 - The container listens on port `7860` (`app_port` in the front matter) and exposes the landing page at `/`, the app at `/app/`, and the WebSocket at `/ws`.
-- Data persists in the container's writable layer at `/home/user/.local/share/kitsune/`. On the free tier this is ephemeral — accounts and messages reset when the Space is restarted or rebuilt. For durable data, set `DATABASE_URL` (and `DATABASE_SSL=1`) as a Space Secret and the server will switch to PostgreSQL.
+- Data persists in the container's writable layer at `/home/node/.local/share/kitsune/`. On the free tier this is ephemeral — accounts and messages reset when the Space is restarted or rebuilt. For durable data, set `DATABASE_URL` (and `DATABASE_SSL=1`) as a Space Secret and the server will switch to PostgreSQL.
 - `SESSION_SECRET` is generated automatically at startup if not set. Set it as a Space Secret for stable sessions across restarts.
 - For reliable WebRTC voice/video across networks, set `TURN_URLS`, `TURN_USERNAME`, and `TURN_CREDENTIAL` as Space Secrets. Without TURN, calls still work between clients that can reach each other directly.
 
