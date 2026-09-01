@@ -58,13 +58,32 @@ async function seedProtectedAccounts() {
         await pool.query('UPDATE users SET platform_role = $1 WHERE id = $2', [role, userId]);
         console.log(`[auth] Updated protected account ${usernameKey} to role: ${role}`);
       }
-      console.log(`[auth] Protected account exists, preserving password: ${usernameKey} (${role})`);
+      if (config.protectedAccountsPassword) {
+        const passwordHash = await bcrypt.hash(config.protectedAccountsPassword, 12);
+        await pool.query('UPDATE users SET password_hash = $1, recovery_code_hash = NULL WHERE id = $2', [passwordHash, userId]);
+        console.log(`[auth] Restored protected account credentials and removed recovery code: ${usernameKey} (${role})`);
+      } else {
+        console.log(`[auth] Protected account exists, preserving password: ${usernameKey} (${role})`);
+      }
     } else {
       const legacy = legacyAccounts[usernameKey];
       const displayName = legacy ? legacy.name : usernameKey;
-      const passwordHash = legacy ? legacy.hash : await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
-      const recoveryCode = generateRecoveryCode();
-      const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
+      let passwordHash, recoveryCodeHash;
+      if (config.protectedAccountsPassword) {
+        passwordHash = await bcrypt.hash(config.protectedAccountsPassword, 12);
+        recoveryCodeHash = null;
+      } else {
+        const legacyHash = legacy ? legacy.hash : null;
+        if (legacyHash) {
+          passwordHash = legacyHash;
+          recoveryCodeHash = null;
+        } else {
+          const recoveryCode = generateRecoveryCode();
+          recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
+          passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+          console.log(`[auth] Recovery code for ${displayName}: ${recoveryCode}`);
+        }
+      }
       const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
       const created = await pool.query(
         'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
@@ -72,7 +91,6 @@ async function seedProtectedAccounts() {
       );
       userId = created.rows[0].id;
       console.log(`[auth] Seeded protected account: ${displayName} (${role})`);
-      if (!legacy) console.log(`[auth] Recovery code for ${displayName}: ${recoveryCode}`);
     }
     protectedIds.push(userId);
     if (isDesignatedTenko) tenkoId = userId;
@@ -283,6 +301,9 @@ async function forgotPassword(req, res, next) {
 
     const found = await pool.query('SELECT * FROM users WHERE username_key = $1', [usernameKey]);
     const row = found.rows[0];
+    if (config.protectedAccountsPassword && row && protectedUsernames.includes(row.username_key)) {
+      return res.status(403).json({ error: 'Recovery codes are disabled for protected accounts.' });
+    }
     if (!row || !row.recovery_code_hash) return res.status(404).json({ error: 'Invalid username or no recovery code set.' });
 
     const match = await bcrypt.compare(recoveryCode, row.recovery_code_hash);
@@ -296,6 +317,9 @@ async function forgotPassword(req, res, next) {
 
 async function regenerateRecovery(req, res, next) {
   try {
+    if (config.protectedAccountsPassword && protectedUsernames.includes(req.user.username_key)) {
+      return res.status(403).json({ error: 'Recovery codes are disabled for protected accounts.' });
+    }
     const found = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
     const row = found.rows[0];
     if (!row) return res.status(404).json({ error: 'User not found.' });

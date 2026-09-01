@@ -22,4 +22,5 @@ module.exports = {
   turnUrls: (process.env.TURN_URLS || '').split(',').map(x => x.trim()).filter(Boolean),
   turnUsername: process.env.TURN_USERNAME || '',
   turnCredential: process.env.TURN_CREDENTIAL || '',
+  protectedAccountsPassword: process.env.PROTECTED_ACCOUNTS_PASSWORD || '',
 };

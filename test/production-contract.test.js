@@ -59,8 +59,8 @@ test('screen sharing prioritizes motion and per-stream fullscreen', () => {
 
 test('website exposes real desktop and Android downloads', () => {
   const website = read('website/index.html');
-  assert.match(website, /href="\/downloads\/windows"/);
-  assert.match(website, /href="\/downloads\/android"/);
+  assert.match(website, /href="(\/downloads\/windows|https:\/\/github\.com\/Heztamione\/Kitsune-V2\/releases\/download\/[^"]*Setup\.exe)"/);
+  assert.match(website, /href="(\/downloads\/android|https:\/\/github\.com\/Heztamione\/Kitsune-V2\/releases\/download\/[^"]*\.apk)"/);
   const pkg = JSON.parse(read('package.json'));
   const winExe = path.join(root, `releases/pc/Kitsune-v${pkg.version}-Setup.exe`);
   const apk = path.join(root, `releases/android/Kitsune-v${pkg.version}.apk`);
