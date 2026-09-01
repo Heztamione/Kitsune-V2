@@ -65,6 +65,20 @@ Open:
 
 Run `self-host-public.bat` or `host-kitsune-cloud-bridge.bat` to create a temporary Cloudflare Quick Tunnel. It provides HTTPS/WSS but is not permanent production hosting and its URL changes whenever the tunnel restarts.
 
+## Render free deployment
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Heztamione/Kitsune-V2)
+
+One-click deploy to Render’s free web service tier.
+
+- The container uses the `Dockerfile` at the repo root and listens on the `$PORT` provided by Render.
+- It runs in **demo mode** (in-memory database, no PostgreSQL required).
+- The free tier **sleeps after 15 minutes of inactivity** and takes 30 seconds to wake up. This makes it great for demos but unsuitable for 24/7 production chat.
+- `SESSION_SECRET` is generated automatically by Render. Set it as an environment variable if you want stable sessions across redeploys.
+- For a production deployment, create a managed PostgreSQL database on Render and set `DATABASE_URL`, then upgrade to a paid plan to avoid sleep.
+
+Your app will be available at `https://kitsune-v2.onrender.com` (or a Render-assigned subdomain).
+
 ## Hugging Face Space deployment
 
 This repo is configured to run as a Hugging Face Space (`sdk: docker` in the `README.md` front matter, with a `Dockerfile` at the repo root). The Space runs the full Kitsune server in **demo mode** — an in-memory database with disk persistence, no PostgreSQL required.
