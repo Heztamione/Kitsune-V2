@@ -148,17 +148,35 @@ function publicUser(row) {
 
 function cookieOptions(req, maxAge) {
   const secure = config.production || req.secure || req.headers['x-forwarded-proto'] === 'https';
-  return { httpOnly: true, secure, sameSite: 'strict', path: '/', maxAge };
+  return { httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge };
+}
+
+function sessionTokenFromCookie(req) {
+  const parsed = cookie.parse(req.headers.cookie || '');
+  return parsed[COOKIE_NAME] || null;
 }
 
 async function issueSession(req, res, userId, remember) {
   const token = crypto.randomBytes(32).toString('base64url');
-  const seconds = remember ? config.sessionDays * 86400 : 86400;
+  const seconds = remember ? config.rememberMeDays * 86400 : config.noRememberDays * 86400;
   await pool.query(
-    'INSERT INTO sessions(token_hash, user_id, expires_at, user_agent, ip) VALUES ($1, $2, now() + ($3 * interval \'1 second\'), $4, $5)',
-    [tokenHash(token), userId, seconds, String(req.headers['user-agent'] || '').slice(0, 512), req.ip]
+    'INSERT INTO sessions(token_hash, user_id, expires_at, remember, user_agent, ip) VALUES ($1, $2, now() + ($3 * interval \'1 second\'), $4, $5, $6) RETURNING id',
+    [tokenHash(token), userId, seconds, remember, String(req.headers['user-agent'] || '').slice(0, 512), req.ip]
   );
-  res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, token, cookieOptions(req, seconds)));
+  res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, token, cookieOptions(req, remember ? seconds : undefined)));
+}
+
+async function refreshSession(req, res, user) {
+  if (!user?.token_hash) return;
+  const token = sessionTokenFromCookie(req);
+  if (!token || tokenHash(token) !== user.token_hash) return;
+  const remember = Boolean(user.remember);
+  const seconds = remember ? config.rememberMeDays * 86400 : config.noRememberDays * 86400;
+  await pool.query(
+    'UPDATE sessions SET expires_at = now() + ($2 * interval \'1 second\'), last_seen_at = now() WHERE token_hash = $1',
+    [user.token_hash, seconds]
+  );
+  res.setHeader('Set-Cookie', cookie.serialize(COOKIE_NAME, token, cookieOptions(req, remember ? seconds : undefined)));
 }
 
 async function seedPublicGuild(client, ownerId) {
@@ -247,12 +265,11 @@ async function authenticateRequest(req) {
   const token = parsed[COOKIE_NAME];
   if (!token) return null;
   const result = await pool.query(
-    `SELECT u.*, s.token_hash FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.*, s.token_hash, s.remember FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = $1 AND s.expires_at > now()`,
     [tokenHash(token)]
   );
   if (!result.rowCount) return null;
-  pool.query('UPDATE sessions SET last_seen_at = now() WHERE token_hash = $1', [result.rows[0].token_hash]).catch(() => {});
   return result.rows[0];
 }
 
@@ -260,6 +277,7 @@ async function requireAuth(req, res, next) {
   try {
     req.user = await authenticateRequest(req);
     if (!req.user) return res.status(401).json({ error: 'Authentication required.' });
+    await refreshSession(req, res, req.user);
     next();
   } catch (error) { next(error); }
 }

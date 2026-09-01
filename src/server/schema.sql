@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   token_hash char(64) PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at timestamptz NOT NULL,
+  remember boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
   last_seen_at timestamptz NOT NULL DEFAULT now(),
   user_agent varchar(512),

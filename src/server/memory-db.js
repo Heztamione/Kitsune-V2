@@ -161,30 +161,42 @@ async function query(text, params = []) {
   // --- Schema migrations ---
   if (upper.startsWith('CREATE TABLE IF NOT EXISTS SCHEMA_MIGRATIONS')) return { rows: [], rowCount: 0 };
   if (upper.startsWith('SELECT 1 FROM SCHEMA_MIGRATIONS')) {
-    return { rows: tables.schema_migrations.has(1) ? [{ '?column?': 1 }] : [], rowCount: tables.schema_migrations.has(1) ? 1 : 0 };
+    const version = Number(params[0] || 1);
+    return { rows: tables.schema_migrations.has(version) ? [{ '?column?': 1 }] : [], rowCount: tables.schema_migrations.has(version) ? 1 : 0 };
   }
   if (upper.startsWith('INSERT INTO SCHEMA_MIGRATIONS')) {
-    tables.schema_migrations.set(1, { version: 1, applied_at: now() });
+    const version = Number(params[0] || 1);
+    tables.schema_migrations.set(version, { version, applied_at: now() });
     return { rows: [], rowCount: 1 };
   }
 
   // --- Sessions ---
   if (upper.startsWith('INSERT INTO SESSIONS(')) {
-    const [tokenHash, userId, seconds, userAgent, ip] = params;
+    const [tokenHash, userId, seconds, remember, userAgent, ip] = params;
     const id = uuid();
     const expiresAt = new Date(Date.now() + Number(seconds) * 1000);
-    tables.sessions.set(id, { id, token_hash: tokenHash, user_id: userId, expires_at: expiresAt, user_agent: userAgent, ip, last_seen_at: now(), created_at: now() });
+    tables.sessions.set(id, { id, token_hash: tokenHash, user_id: userId, expires_at: expiresAt, remember: Boolean(remember), user_agent: userAgent, ip, last_seen_at: now(), created_at: now() });
     return { rows: [{ id }], rowCount: 1 };
   }
-  if (upper.startsWith('SELECT U.*, S.TOKEN_HASH FROM SESSIONS S JOIN USERS U')) {
+  if (upper.startsWith('SELECT U.*, S.TOKEN_HASH, S.REMEMBER FROM SESSIONS S JOIN USERS U')) {
     const tokenHash = params[0];
     for (const s of tables.sessions.values()) {
       if (s.token_hash === tokenHash && s.expires_at > now()) {
         const u = userRow(s.user_id);
-        if (u) return { rows: [{ ...u, token_hash: s.token_hash }], rowCount: 1 };
+        if (u) return { rows: [{ ...u, token_hash: s.token_hash, remember: s.remember }], rowCount: 1 };
       }
     }
     return { rows: [], rowCount: 0 };
+  }
+  if (upper.startsWith('UPDATE SESSIONS SET EXPIRES_AT = NOW() + ($2')) {
+    const [tokenHash, seconds] = params;
+    for (const s of tables.sessions.values()) {
+      if (s.token_hash === tokenHash) {
+        s.expires_at = new Date(Date.now() + Number(seconds) * 1000);
+        s.last_seen_at = now();
+      }
+    }
+    return { rows: [], rowCount: 1 };
   }
   if (upper.startsWith('UPDATE SESSIONS SET LAST_SEEN_AT')) {
     const tokenHash = params[0];
@@ -814,6 +826,7 @@ async function migrate() {
   if (migrated) return;
   migrated = true;
   tables.schema_migrations.set(1, { version: 1, applied_at: now() });
+  tables.schema_migrations.set(2, { version: 2, applied_at: now() });
   // Save initial state after migration
   saveToDisk();
 }

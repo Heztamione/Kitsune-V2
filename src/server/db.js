@@ -27,11 +27,18 @@ if (config.demoMode) {
     try {
       await client.query('SELECT pg_advisory_lock($1)', [842019]);
       await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
-      const applied = await client.query('SELECT 1 FROM schema_migrations WHERE version = 1');
-      if (!applied.rowCount) {
+      const applied1 = await client.query('SELECT 1 FROM schema_migrations WHERE version = 1');
+      if (!applied1.rowCount) {
         await client.query('BEGIN');
         await client.query(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
         await client.query('INSERT INTO schema_migrations(version) VALUES (1)');
+        await client.query('COMMIT');
+      }
+      const applied2 = await client.query('SELECT 1 FROM schema_migrations WHERE version = 2');
+      if (!applied2.rowCount) {
+        await client.query('BEGIN');
+        await client.query('ALTER TABLE sessions ADD COLUMN IF NOT EXISTS remember boolean NOT NULL DEFAULT false');
+        await client.query('INSERT INTO schema_migrations(version) VALUES (2)');
         await client.query('COMMIT');
       }
     } catch (error) {
