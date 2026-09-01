@@ -144,6 +144,7 @@ app.get('/api/health', async (req, res, next) => {
 app.post('/api/auth/register', authLimit, auth.register);
 app.post('/api/auth/login', authLimit, auth.login);
 app.post('/api/auth/logout', auth.requireAuth, auth.logout);
+app.post('/api/auth/change-password', authLimit, auth.requireAuth, auth.changePassword);
 app.get('/api/auth/me', auth.requireAuth, (req, res) => res.json({ user: auth.publicUser(req.user) }));
 app.patch('/api/users/me', auth.requireAuth, async (req, res, next) => {
   try {

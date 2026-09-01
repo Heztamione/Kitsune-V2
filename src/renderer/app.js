@@ -2024,6 +2024,16 @@
         </div>
         <div class="settings-section"><h4>Account Security</h4><div class="sec-desc">Your account, role, messages, friends, and server memberships are stored securely on the Kitsune server.</div>
           <div class="settings-row"><div><div class="sr-label">Server role</div><div class="sr-desc">Roles are controlled by server-side permissions and cannot be claimed from the browser.</div></div><b>${escapeHtml(state.me.role)}</b></div>
+          <div class="settings-row"><div><div class="sr-label">Change password</div><div class="sr-desc">Update your account password.</div></div><button class="primary-btn small" id="openChangePassword">Change</button></div>
+          <div id="changePasswordForm" class="hidden" style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+            <input type="password" id="currentPassword" placeholder="Current password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
+            <input type="password" id="newPassword" placeholder="New password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
+            <input type="password" id="confirmPassword" placeholder="Confirm new password" style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--panel-deep);color:var(--text);">
+            <div style="display:flex;gap:10px;">
+              <button class="primary-btn" id="savePassword">Update Password</button>
+              <button class="ghost-btn" id="cancelChangePassword">Cancel</button>
+            </div>
+          </div>
         </div>`;
       $id('saveProfile').addEventListener('click', async () => {
         const name = $id('setName').value.trim() || state.me.name;
@@ -2049,6 +2059,21 @@
         reader.onload = (ev) => { state.me.avatar = ev.target.result; state.me.customAvatar = true; $id('avatarPreview').src = state.me.avatar; };
         reader.readAsDataURL(file);
         e.target.value = '';
+      });
+      $id('openChangePassword').addEventListener('click', () => $id('changePasswordForm').classList.remove('hidden'));
+      $id('cancelChangePassword').addEventListener('click', () => $id('changePasswordForm').classList.add('hidden'));
+      $id('savePassword').addEventListener('click', async () => {
+        const current = $id('currentPassword').value;
+        const newPass = $id('newPassword').value;
+        const confirm = $id('confirmPassword').value;
+        if (newPass.length < 8) return toast('Password must be at least 8 characters.', 'error');
+        if (newPass !== confirm) return toast('New passwords do not match.', 'error');
+        try {
+          await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: current, newPassword: newPass }) });
+          $id('currentPassword').value = ''; $id('newPassword').value = ''; $id('confirmPassword').value = '';
+          $id('changePasswordForm').classList.add('hidden');
+          toast('Password updated');
+        } catch (error) { toast(error.message, 'error'); }
       });
     } else if (sec === 'appearance') {
       pane.innerHTML = `

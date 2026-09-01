@@ -9,11 +9,13 @@ const { pool, transaction } = require('./db');
 const COOKIE_NAME = 'kitsune_session';
 const USERNAME = /^[a-zA-Z0-9_\- ]{2,24}$/;
 
-// Load protected accounts list
+// Load protected accounts list and designated Tenko
 let protectedUsernames = [];
+let tenkoUsername = null;
 try {
   const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'protected-accounts.json'), 'utf8'));
   protectedUsernames = (cfg.accounts || []).map(u => u.toLowerCase());
+  if (cfg.tenko) tenkoUsername = String(cfg.tenko).toLowerCase();
 } catch (_) { /* file may not exist yet */ }
 
 function isProtectedUsername(usernameKey) {
@@ -37,7 +39,12 @@ async function seedProtectedAccounts() {
   if (!protectedUsernames.length) return;
   const legacyAccounts = loadLegacyAccounts();
 
-  for (const usernameKey of protectedUsernames) {
+  // Seed the designated Tenko account first so it becomes the first user and owns the public shrine.
+  const seedOrder = tenkoUsername && protectedUsernames.includes(tenkoUsername)
+    ? [tenkoUsername, ...protectedUsernames.filter(u => u !== tenkoUsername)]
+    : [...protectedUsernames];
+
+  for (const usernameKey of seedOrder) {
     const existing = await pool.query('SELECT id FROM users WHERE username_key = $1', [usernameKey]);
     if (existing.rowCount) continue;
 
@@ -45,7 +52,8 @@ async function seedProtectedAccounts() {
     const displayName = legacy ? legacy.name : usernameKey;
     // Use legacy SHA-256 hash if available, otherwise generate a random password (account exists but needs password reset)
     const passwordHash = legacy ? legacy.hash : bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
-    const role = (legacy && legacy.role === 'Tenko') ? 'Tenko' : 'Wanderer';
+    const isDesignatedTenko = usernameKey === tenkoUsername;
+    const role = (legacy && legacy.role === 'Tenko') ? 'Tenko' : (isDesignatedTenko ? 'Tenko' : 'Wanderer');
     const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
 
     try {
@@ -59,10 +67,15 @@ async function seedProtectedAccounts() {
         if (first) {
           await seedPublicGuild(client, created.rows[0].id);
         } else {
-          await client.query("INSERT INTO guild_members(guild_id, user_id, role) SELECT id, $1, 'Wanderer' FROM guilds WHERE is_public = true ON CONFLICT DO NOTHING", [created.rows[0].id]);
+          const publicGuild = await client.query('SELECT id FROM guilds WHERE is_public = true LIMIT 1');
+          const guildId = publicGuild.rows[0]?.id;
+          if (guildId) {
+            const memberRole = isDesignatedTenko ? 'Tenko' : 'Wanderer';
+            await client.query("INSERT INTO guild_members(guild_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", [guildId, created.rows[0].id, memberRole]);
+          }
         }
       });
-      console.log(`[auth] Seeded protected account: ${displayName}`);
+      console.log(`[auth] Seeded protected account: ${displayName} (${first ? 'Tenko' : role})`);
     } catch (e) {
       console.error(`[auth] Failed to seed protected account ${usernameKey}:`, e.message);
     }
@@ -202,4 +215,24 @@ async function logout(req, res) {
   res.status(204).end();
 }
 
-module.exports = { register, login, logout, requireAuth, authenticateRequest, publicUser, seedProtectedAccounts, isProtectedUsername };
+async function changePassword(req, res, next) {
+  try {
+    const currentPassword = String(req.body.currentPassword || '');
+    const newPassword = String(req.body.newPassword || '');
+    if (newPassword.length < 8 || newPassword.length > 128) return res.status(400).json({ error: 'New password must be 8-128 characters.' });
+
+    const found = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const row = found.rows[0];
+    if (!row) return res.status(404).json({ error: 'User not found.' });
+
+    const bcryptMatch = await bcrypt.compare(currentPassword, row.password_hash);
+    const sha256Match = row.password_hash.length === 64 && crypto.createHash('sha256').update(currentPassword).digest('hex') === row.password_hash;
+    if (!bcryptMatch && !sha256Match) return res.status(401).json({ error: 'Current password is incorrect.' });
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
+    res.status(204).end();
+  } catch (error) { next(error); }
+}
+
+module.exports = { register, login, logout, changePassword, requireAuth, authenticateRequest, publicUser, seedProtectedAccounts, isProtectedUsername };

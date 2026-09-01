@@ -1,4 +1,5 @@
 {
   "accounts": ["maxilinox", "asa_diaries"],
-  "description": "Accounts listed here cannot be banned, kicked, role-changed, or deleted. They are also seeded on startup if missing."
+  "tenko": "asa_diaries",
+  "description": "Accounts listed here cannot be banned, kicked, role-changed, or deleted. They are also seeded on startup if missing. The `tenko` account is seeded first and owns the public shrine."
 }
