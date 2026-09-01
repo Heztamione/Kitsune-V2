@@ -208,15 +208,21 @@ async function query(text, params = []) {
     return { rows: [{ count: tables.users.size }], rowCount: 1 };
   }
   if (upper.startsWith('INSERT INTO USERS(')) {
-    const [username, usernameKey, passwordHash, avatar, platformRole] = params;
+    // Supports both the old (5 params) and new (6 params including recovery_code_hash) INSERT statements.
+    const username = params[0];
+    const usernameKey = params[1];
+    const passwordHash = params[2];
+    const recoveryCodeHash = params.length >= 6 ? params[3] : null;
+    const avatar = params.length >= 6 ? params[4] : params[3];
+    const platformRole = params.length >= 6 ? params[5] : params[4];
     // Enforce unique constraint on username_key
     for (const u of tables.users.values()) {
       if (u.username_key === usernameKey) { const err = new Error('unique violation'); err.code = '23505'; throw err; }
     }
     const id = uuid();
     const user = {
-      id, username, username_key: usernameKey, password_hash: passwordHash, avatar,
-      platform_role: platformRole, bio: '', status: 'offline', activity: '',
+      id, username, username_key: usernameKey, password_hash: passwordHash, recovery_code_hash: recoveryCodeHash,
+      avatar, platform_role: platformRole, bio: '', status: 'offline', activity: '',
       created_at: now(), updated_at: now(),
     };
     tables.users.set(id, user);
@@ -266,9 +272,18 @@ async function query(text, params = []) {
     return { rows: [{ ...u }], rowCount: 1 };
   }
   if (upper.startsWith('UPDATE USERS SET PASSWORD_HASH = $1')) {
-    const [passwordHash, userId] = params;
+    // Supports both the old 2-param form and the new 3-param form that also clears recovery_code_hash.
+    const passwordHash = params[0];
+    const userId = params.length >= 3 ? params[2] : params[1];
+    const recoveryCodeHash = params.length >= 3 ? params[1] : undefined;
     const u = tables.users.get(userId);
-    if (u) { u.password_hash = passwordHash; u.updated_at = now(); }
+    if (u) { u.password_hash = passwordHash; if (recoveryCodeHash !== undefined) u.recovery_code_hash = recoveryCodeHash; u.updated_at = now(); }
+    return { rows: [], rowCount: u ? 1 : 0 };
+  }
+  if (upper.startsWith('UPDATE USERS SET RECOVERY_CODE_HASH = $1 WHERE ID = $2')) {
+    const [recoveryCodeHash, userId] = params;
+    const u = tables.users.get(userId);
+    if (u) { u.recovery_code_hash = recoveryCodeHash; u.updated_at = now(); }
     return { rows: [], rowCount: u ? 1 : 0 };
   }
 

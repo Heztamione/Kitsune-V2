@@ -21,7 +21,7 @@
       <div class="auth-title">KITSUNE</div>
       <div class="auth-sub">Gaming chat, sharpened. Identify to enter.</div>
       <div id="authError" class="auth-error hidden"></div>
-      <div class="auth-tabs">
+      <div class="auth-tabs" id="authTabs">
         <button class="auth-tab active" id="tabLogin" data-mode="login">Login</button>
         <button class="auth-tab" id="tabRegister" data-mode="register">Register</button>
       </div>
@@ -31,11 +31,30 @@
         <input type="text" id="authUser" placeholder="Your callsign" autocomplete="off" />
         <label for="authPass">Password</label>
         <input type="password" id="authPass" placeholder="Password" />
+        <a href="#" id="forgotPasswordLink" class="forgot-link hidden">Forgot password?</a>
         <label for="authPass2" id="authPass2Label" class="hidden">Confirm password</label>
         <input type="password" id="authPass2" class="hidden" placeholder="Confirm password" />
         <label class="auth-remember"><input type="checkbox" id="authRemember" checked /> Remember me</label>
         <button type="submit" class="primary-btn auth-submit" id="authSubmit">Enter</button>
       </form>
+      <form id="forgotPasswordForm" class="hidden">
+        <label for="forgotUser">Display name</label>
+        <input type="text" id="forgotUser" placeholder="Your callsign" autocomplete="off" />
+        <label for="forgotCode">Recovery code</label>
+        <input type="text" id="forgotCode" placeholder="XXXX-XXXX-XXXX-XXXX" />
+        <label for="forgotNewPass">New password</label>
+        <input type="password" id="forgotNewPass" placeholder="New password" />
+        <label for="forgotConfirmPass">Confirm new password</label>
+        <input type="password" id="forgotConfirmPass" placeholder="Confirm new password" />
+        <button type="submit" class="primary-btn auth-submit" id="forgotSubmit">Reset password</button>
+        <button type="button" class="ghost-btn auth-submit" id="forgotCancel">Back to login</button>
+      </form>
+      <div id="recoveryCodeDisplay" class="hidden" style="text-align:center;margin-top:14px;">
+        <div class="sec-desc" style="margin-bottom:8px;">Save this recovery code somewhere safe. It is the only way to reset your password without email.</div>
+        <div id="recoveryCodeValue" class="code-box" style="font-family:monospace;font-size:1.2em;background:#1a1018;border:1px solid #ff2a6d;border-radius:6px;padding:10px;margin-bottom:10px;"></div>
+        <button type="button" class="primary-btn" id="copyRecoveryCode">Copy</button>
+        <button type="button" class="ghost-btn" id="continueAfterRegister">Continue</button>
+      </div>
       <div class="auth-foot">Secure account &middot; Real-time Kitsune network</div>
     </div>
   </div>

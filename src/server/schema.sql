@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
   username varchar(24) NOT NULL,
   username_key varchar(24) NOT NULL UNIQUE,
   password_hash text NOT NULL,
+  recovery_code_hash text,
   avatar text NOT NULL DEFAULT '',
   bio varchar(500) NOT NULL DEFAULT '',
   status varchar(16) NOT NULL DEFAULT 'online' CHECK (status IN ('online', 'idle', 'dnd', 'offline')),

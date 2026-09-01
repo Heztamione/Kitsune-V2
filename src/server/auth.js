@@ -54,6 +54,8 @@ async function seedProtectedAccounts() {
     const passwordHash = legacy ? legacy.hash : bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     const isDesignatedTenko = usernameKey === tenkoUsername;
     const role = (legacy && legacy.role === 'Tenko') ? 'Tenko' : (isDesignatedTenko ? 'Tenko' : 'Wanderer');
+    const recoveryCode = generateRecoveryCode();
+    const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
     const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
 
     try {
@@ -61,8 +63,8 @@ async function seedProtectedAccounts() {
         const count = await client.query('SELECT count(*)::int AS count FROM users');
         const first = count.rows[0].count === 0;
         const created = await client.query(
-          'INSERT INTO users(username, username_key, password_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-          [displayName, usernameKey, passwordHash, avatar, first ? 'Tenko' : role]
+          'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [displayName, usernameKey, passwordHash, recoveryCodeHash, avatar, first ? 'Tenko' : role]
         );
         if (first) {
           await seedPublicGuild(client, created.rows[0].id);
@@ -76,6 +78,7 @@ async function seedProtectedAccounts() {
         }
       });
       console.log(`[auth] Seeded protected account: ${displayName} (${first ? 'Tenko' : role})`);
+      console.log(`[auth] Recovery code for ${displayName}: ${recoveryCode}`);
     } catch (e) {
       console.error(`[auth] Failed to seed protected account ${usernameKey}:`, e.message);
     }
@@ -138,6 +141,10 @@ async function seedPublicGuild(client, ownerId) {
   }
 }
 
+function generateRecoveryCode() {
+  return crypto.randomBytes(8).toString('hex').toUpperCase();
+}
+
 async function register(req, res) {
   const username = String(req.body.username || '').trim().replace(/\s+/g, ' ');
   const usernameKey = key(username);
@@ -145,6 +152,8 @@ async function register(req, res) {
   if (!USERNAME.test(username)) return res.status(400).json({ error: 'Name must be 2-24 characters and use letters, numbers, spaces, _ or -.' });
   if (password.length < 8 || password.length > 128) return res.status(400).json({ error: 'Password must be 8-128 characters.' });
   const passwordHash = await bcrypt.hash(password, 12);
+  const recoveryCode = generateRecoveryCode();
+  const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
   try {
     const user = await transaction(async client => {
       await client.query('SELECT pg_advisory_xact_lock($1)', [842020]);
@@ -152,15 +161,15 @@ async function register(req, res) {
       const first = count.rows[0].count === 0;
       const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(username)}&backgroundColor=1a1018&radius=50`;
       const created = await client.query(
-        'INSERT INTO users(username, username_key, password_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [username, usernameKey, passwordHash, avatar, first ? 'Tenko' : 'Wanderer']
+        'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [username, usernameKey, passwordHash, recoveryCodeHash, avatar, first ? 'Tenko' : 'Wanderer']
       );
       if (first) await seedPublicGuild(client, created.rows[0].id);
       else await client.query("INSERT INTO guild_members(guild_id, user_id, role) SELECT id, $1, 'Wanderer' FROM guilds WHERE is_public = true ON CONFLICT DO NOTHING", [created.rows[0].id]);
       return created.rows[0];
     });
     await issueSession(req, res, user.id, Boolean(req.body.remember));
-    res.status(201).json({ user: publicUser(user) });
+    res.status(201).json({ user: publicUser(user), recoveryCode });
   } catch (error) {
     if (error.code === '23505') return res.status(409).json({ error: 'That account already exists.' });
     throw error;
@@ -235,4 +244,38 @@ async function changePassword(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { register, login, logout, changePassword, requireAuth, authenticateRequest, publicUser, seedProtectedAccounts, isProtectedUsername };
+async function forgotPassword(req, res, next) {
+  try {
+    const username = String(req.body.username || '').trim();
+    const usernameKey = key(username);
+    const recoveryCode = String(req.body.recoveryCode || '').toUpperCase().replace(/\s+/g, '');
+    const newPassword = String(req.body.newPassword || '');
+    if (newPassword.length < 8 || newPassword.length > 128) return res.status(400).json({ error: 'New password must be 8-128 characters.' });
+
+    const found = await pool.query('SELECT * FROM users WHERE username_key = $1', [usernameKey]);
+    const row = found.rows[0];
+    if (!row || !row.recovery_code_hash) return res.status(404).json({ error: 'Invalid username or no recovery code set.' });
+
+    const match = await bcrypt.compare(recoveryCode, row.recovery_code_hash);
+    if (!match) return res.status(401).json({ error: 'Invalid recovery code.' });
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE users SET password_hash = $1, recovery_code_hash = NULL WHERE id = $2', [newHash, row.id]);
+    res.status(204).end();
+  } catch (error) { next(error); }
+}
+
+async function regenerateRecovery(req, res, next) {
+  try {
+    const found = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const row = found.rows[0];
+    if (!row) return res.status(404).json({ error: 'User not found.' });
+
+    const recoveryCode = generateRecoveryCode();
+    const recoveryCodeHash = await bcrypt.hash(recoveryCode, 10);
+    await pool.query('UPDATE users SET recovery_code_hash = $1 WHERE id = $2', [recoveryCodeHash, req.user.id]);
+    res.json({ recoveryCode });
+  } catch (error) { next(error); }
+}
+
+module.exports = { register, login, logout, changePassword, forgotPassword, regenerateRecovery, requireAuth, authenticateRequest, publicUser, seedProtectedAccounts, isProtectedUsername };

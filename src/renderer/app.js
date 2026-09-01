@@ -239,6 +239,14 @@
     $id('authSubmit').disabled = true;
     try {
       const result = await api(`/api/auth/${mode}`, { method: 'POST', body: JSON.stringify({ username, password, remember: $id('authRemember').checked }) });
+      if (mode === 'register' && result.recoveryCode) {
+        $id('authForm').classList.add('hidden');
+        $id('authTabs').classList.add('hidden');
+        $id('recoveryCodeValue').textContent = result.recoveryCode;
+        $id('recoveryCodeDisplay').classList.remove('hidden');
+        $id('authSubmit').disabled = false;
+        return;
+      }
       state.me = result.user;
       if ($id('authRemember').checked) {
         const saved = getSavedUsers().filter(u => u.name.toLowerCase() !== username.toLowerCase());
@@ -251,6 +259,45 @@
       err.textContent = error.message;
       err.classList.remove('hidden');
     } finally { $id('authSubmit').disabled = false; }
+  }
+
+  function showForgotForm() {
+    $id('authForm').classList.add('hidden');
+    $id('authTabs').classList.add('hidden');
+    $id('forgotPasswordForm').classList.remove('hidden');
+    $id('recoveryCodeDisplay').classList.add('hidden');
+    $id('authError').classList.add('hidden');
+  }
+
+  function hideForgotForm() {
+    $id('forgotPasswordForm').classList.add('hidden');
+    $id('authForm').classList.remove('hidden');
+    $id('authTabs').classList.remove('hidden');
+    $id('authError').classList.add('hidden');
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    const username = $id('forgotUser').value.trim();
+    const recoveryCode = $id('forgotCode').value.toUpperCase().replace(/\s+/g, '');
+    const newPass = $id('forgotNewPass').value;
+    const confirm = $id('forgotConfirmPass').value;
+    const err = $id('authError');
+    let problem = '';
+    if (newPass.length < 8) problem = 'Password must be at least 8 characters.';
+    if (newPass !== confirm) problem = 'Passwords do not match.';
+    if (!recoveryCode) problem = 'Enter your recovery code.';
+    if (problem) { err.textContent = problem; err.classList.remove('hidden'); return; }
+    $id('forgotSubmit').disabled = true;
+    try {
+      await api('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ username, recoveryCode, newPassword: newPass }) });
+      toast('Password reset. You can now log in.');
+      $id('forgotUser').value = ''; $id('forgotCode').value = ''; $id('forgotNewPass').value = ''; $id('forgotConfirmPass').value = '';
+      hideForgotForm();
+    } catch (error) {
+      err.textContent = error.message;
+      err.classList.remove('hidden');
+    } finally { $id('forgotSubmit').disabled = false; }
   }
 
   function getSavedUsers() { try { return JSON.parse(localStorage.getItem(LS.users) || '[]'); } catch (e) { return []; } }
@@ -2034,6 +2081,12 @@
               <button class="ghost-btn" id="cancelChangePassword">Cancel</button>
             </div>
           </div>
+          <div class="settings-row"><div><div class="sr-label">Recovery code</div><div class="sr-desc">Used to reset your password without email.</div></div><button class="primary-btn small" id="regenerateRecovery">Show / Regenerate</button></div>
+          <div id="recoveryCodeBox" class="hidden" style="margin-top:12px;padding:12px;background:var(--panel-deep);border:1px solid var(--border);border-radius:6px;">
+            <div class="sec-desc" style="margin-bottom:8px;">Save this code somewhere safe. Generating a new one replaces the old code.</div>
+            <div id="recoveryCodeText" style="font-family:monospace;font-size:1.1em;word-break:break-all;margin-bottom:10px;"></div>
+            <button class="ghost-btn small" id="copyRecoveryCodeSettings">Copy</button>
+          </div>
         </div>`;
       $id('saveProfile').addEventListener('click', async () => {
         const name = $id('setName').value.trim() || state.me.name;
@@ -2074,6 +2127,17 @@
           $id('changePasswordForm').classList.add('hidden');
           toast('Password updated');
         } catch (error) { toast(error.message, 'error'); }
+      });
+      $id('regenerateRecovery').addEventListener('click', async () => {
+        try {
+          const result = await api('/api/auth/regenerate-recovery', { method: 'POST' });
+          $id('recoveryCodeText').textContent = result.recoveryCode;
+          $id('recoveryCodeBox').classList.remove('hidden');
+        } catch (error) { toast(error.message, 'error'); }
+      });
+      $id('copyRecoveryCodeSettings').addEventListener('click', () => {
+        const code = $id('recoveryCodeText').textContent;
+        navigator.clipboard.writeText(code).then(() => toast('Copied')).catch(() => toast('Could not copy', 'error'));
       });
     } else if (sec === 'appearance') {
       pane.innerHTML = `
@@ -2392,6 +2456,19 @@
     $id('tabLogin').addEventListener('click', () => { setAuthMode('login'); });
     $id('tabRegister').addEventListener('click', () => { setAuthMode('register'); });
     $id('authForm').addEventListener('submit', e => { e.preventDefault(); handleAuth(); });
+    $id('forgotPasswordLink').addEventListener('click', (e) => { e.preventDefault(); showForgotForm(); });
+    $id('forgotPasswordForm').addEventListener('submit', handleForgotPassword);
+    $id('forgotCancel').addEventListener('click', () => { hideForgotForm(); });
+    $id('copyRecoveryCode').addEventListener('click', () => {
+      const code = $id('recoveryCodeValue').textContent;
+      navigator.clipboard.writeText(code).then(() => toast('Recovery code copied')).catch(() => toast('Could not copy', 'error'));
+    });
+    $id('continueAfterRegister').addEventListener('click', () => {
+      $id('recoveryCodeDisplay').classList.add('hidden');
+      $id('authForm').classList.remove('hidden');
+      $id('authTabs').classList.remove('hidden');
+      setAuthMode('login');
+    });
 
     $id('homeBtn').addEventListener('click', () => switchTo({ type: 'home' }));
     $id('friendsBtn').addEventListener('click', () => switchTo({ type: 'friends' }));
@@ -2473,6 +2550,10 @@
     $id('authPass2Label').classList.toggle('hidden', mode==='login');
     $id('authSubmit').textContent = mode==='login' ? 'Enter' : 'Create account';
     $id('authError').classList.add('hidden');
+    $id('forgotPasswordLink').classList.toggle('hidden', mode !== 'login');
+    $id('authForm').classList.remove('hidden');
+    $id('forgotPasswordForm').classList.add('hidden');
+    $id('recoveryCodeDisplay').classList.add('hidden');
   }
 
   // ---------- Auto-update ----------
