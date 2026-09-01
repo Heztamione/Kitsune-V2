@@ -59,8 +59,8 @@ function sameOrigin(req) {
 
 app.use('/api', (req, res, next) => {
   // Auth endpoints can be reached from Android WebView / embedded browsers that don't send Origin.
-  const isAuthLogin = (req.path === '/auth/register' || req.path === '/auth/login') && req.method === 'POST';
-  if (isAuthLogin || ['GET', 'HEAD', 'OPTIONS'].includes(req.method) || sameOrigin(req)) return next();
+  const isAuthOpen = (req.path === '/auth/register' || req.path === '/auth/login' || req.path === '/auth/forgot-password') && req.method === 'POST';
+  if (isAuthOpen || ['GET', 'HEAD', 'OPTIONS'].includes(req.method) || sameOrigin(req)) return next();
   res.status(403).json({ error: 'Origin rejected.' });
 });
 

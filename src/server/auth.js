@@ -51,7 +51,7 @@ async function seedProtectedAccounts() {
     const legacy = legacyAccounts[usernameKey];
     const displayName = legacy ? legacy.name : usernameKey;
     // Use legacy SHA-256 hash if available, otherwise generate a random password (account exists but needs password reset)
-    const passwordHash = legacy ? legacy.hash : bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+    const passwordHash = legacy ? legacy.hash : await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     const isDesignatedTenko = usernameKey === tenkoUsername;
     const role = (legacy && legacy.role === 'Tenko') ? 'Tenko' : (isDesignatedTenko ? 'Tenko' : 'Wanderer');
     const recoveryCode = generateRecoveryCode();
@@ -59,22 +59,19 @@ async function seedProtectedAccounts() {
     const avatar = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=1a1018&radius=50`;
 
     try {
+      let first = false;
+      let created;
       await transaction(async client => {
         const count = await client.query('SELECT count(*)::int AS count FROM users');
-        const first = count.rows[0].count === 0;
-        const created = await client.query(
+        first = count.rows[0].count === 0;
+        created = (await client.query(
           'INSERT INTO users(username, username_key, password_hash, recovery_code_hash, avatar, platform_role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
           [displayName, usernameKey, passwordHash, recoveryCodeHash, avatar, first ? 'Tenko' : role]
-        );
+        )).rows[0];
         if (first) {
-          await seedPublicGuild(client, created.rows[0].id);
+          await seedPublicGuild(client, created.id);
         } else {
-          const publicGuild = await client.query('SELECT id FROM guilds WHERE is_public = true LIMIT 1');
-          const guildId = publicGuild.rows[0]?.id;
-          if (guildId) {
-            const memberRole = isDesignatedTenko ? 'Tenko' : 'Wanderer';
-            await client.query("INSERT INTO guild_members(guild_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", [guildId, created.rows[0].id, memberRole]);
-          }
+          await client.query("INSERT INTO guild_members(guild_id, user_id, role) SELECT id, $1, 'Wanderer' FROM guilds WHERE is_public = true ON CONFLICT DO NOTHING", [created.id]);
         }
       });
       console.log(`[auth] Seeded protected account: ${displayName} (${first ? 'Tenko' : role})`);
